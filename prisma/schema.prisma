@@ -11,3 +11,73 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  ADMIN
+  INSTRUCTOR
+  STUDENT
+}
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model User {
+  id          String       @id @default(uuid()) @db.Uuid
+  name        String
+  email       String       @unique
+  role        Role         @default(STUDENT)
+  createtAt   DateTime     @default(now())
+  updateAt    DateTime     @updatedAt
+  courses     Course[]
+  enrollments Enrollment[]
+}
+
+model Course {
+  id          String       @id @default(uuid()) @db.Uuid
+  title       String
+  slug        String       @unique
+  description String?
+  status      CourseStatus @default(DRAFT)
+
+  instructorId String @db.Uuid
+  instructor   User   @relation(fields: [instructorId], references: [id], onDelete: Restrict)
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  lessons     Lesson[]
+  enrollments Enrollment[]
+
+  @@index([instructorId])
+}
+
+model Lesson {
+  id       String  @id @default(uuid()) @db.Uuid
+  title    String
+  content  String?
+  position Int
+
+  courseId String @db.Uuid
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, position])
+}
+
+model Enrollment {
+  id String @id @default(uuid()) @db.Uuid
+
+  userId   String @db.Uuid
+  courseId String @db.Uuid
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  enrolledAt DateTime @default(now())
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
